@@ -511,7 +511,7 @@ class PackageQueryApp(QMainWindow):
     
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("通用包裹查詢 v1.3.0")
+        self.setWindowTitle("通用包裹查詢 v1.4.0")
         self.setMinimumSize(800, 650)
         self.resize(900, 700)
         
@@ -552,7 +552,7 @@ class PackageQueryApp(QMainWindow):
         title_label.setObjectName("titleLabel")
         title_layout.addWidget(title_label)
         
-        subtitle_label = QLabel("支援全家便利商店、宅急便、蝦皮店到店 | v1.3.0 PyQt6")
+        subtitle_label = QLabel("支援全家便利商店、宅急便、蝦皮店到店 | v1.4.0 PyQt6")
         subtitle_label.setObjectName("subtitleLabel")
         title_layout.addWidget(subtitle_label)
         
@@ -595,7 +595,7 @@ def main():
     
     app = QApplication(sys.argv)
     app.setApplicationName("通用包裹查詢")
-    app.setApplicationVersion("1.3.0")
+    app.setApplicationVersion("1.4.0")
     
     window = PackageQueryApp()
     window.show()
