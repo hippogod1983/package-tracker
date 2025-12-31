@@ -1,0 +1,19 @@
+# 全家包裹查詢設定範例檔
+# FamilyMart Package Query Configuration Example
+# 請複製此檔案為 config.yaml 並填入您的包裹編號
+# Copy this file to config.yaml and fill in your tracking numbers
+
+# 要查詢的包裹編號列表
+# List of tracking numbers to query
+tracking_numbers:
+  - "YOUR_TRACKING_NUMBER_1"
+  - "YOUR_TRACKING_NUMBER_2"
+  # Add more tracking numbers as needed
+
+# 驗證碼辨識失敗時的最大重試次數
+# Maximum retries when captcha recognition fails
+max_retries: 3
+
+# 是否顯示瀏覽器視窗（除錯用）
+# Whether to show browser window (for debugging)
+headless: true
