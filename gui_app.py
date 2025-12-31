@@ -314,7 +314,7 @@ class QueryTab(QWidget):
         super().__init__(parent)
         self.query_class = query_class
         self.tab_name = tab_name
-        self.max_inputs = getattr(query_class, 'MAX_BATCH', 5)
+        self.max_inputs = 4  # 固定 4 個輸入欄位
         self.entry_fields: List[QLineEdit] = []
         self.is_querying = False
         self.worker: Optional[QueryWorker] = None
@@ -380,9 +380,9 @@ class QueryTab(QWidget):
         result_layout = QVBoxLayout(result_group)
         
         self.result_table = QTableWidget()
-        self.result_table.setColumnCount(4)
-        self.result_table.setHorizontalHeaderLabels(['包裹編號', '訂單編號', '狀態', '查詢時間'])
-        self.result_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        self.result_table.setColumnCount(3)
+        self.result_table.setHorizontalHeaderLabels(['包裹編號', '狀態', '查詢時間'])
+        self.result_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.result_table.horizontalHeader().setMinimumSectionSize(100)
         self.result_table.setAlternatingRowColors(True)
         self.result_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -432,7 +432,6 @@ class QueryTab(QWidget):
         self.result_table.insertRow(row)
         
         self.result_table.setItem(row, 0, QTableWidgetItem(result.get('包裹編號', 'N/A')))
-        self.result_table.setItem(row, 1, QTableWidgetItem(result.get('訂單編號', '-')))
         
         status = result.get('狀態', 'N/A')
         status_item = QTableWidgetItem(status)
@@ -445,8 +444,8 @@ class QueryTab(QWidget):
         elif any(k in status for k in ['查無', '失敗', '異常']):
             status_item.setForeground(QColor(ModernStyle.ERROR))
         
-        self.result_table.setItem(row, 2, status_item)
-        self.result_table.setItem(row, 3, QTableWidgetItem(datetime.now().strftime('%H:%M:%S')))
+        self.result_table.setItem(row, 1, status_item)
+        self.result_table.setItem(row, 2, QTableWidgetItem(datetime.now().strftime('%H:%M:%S')))
     
     def _on_status_update(self, status: str):
         """更新狀態"""
@@ -511,7 +510,7 @@ class PackageQueryApp(QMainWindow):
     
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("通用包裹查詢 v1.4.0")
+        self.setWindowTitle("通用包裹查詢 v1.5.0")
         self.setMinimumSize(800, 650)
         self.resize(900, 700)
         
@@ -528,11 +527,15 @@ class PackageQueryApp(QMainWindow):
         self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)
     
     def _set_window_icon(self):
-        """設定視窗圖標"""
+        """設定視窗圖標（使用 .ico 檔案確保一致性）"""
         try:
-            icon_path = get_resource_path('icon_hd.png')
+            # 優先使用 .ico 檔案（與桌面圖示一致）
+            icon_path = get_resource_path('icon.ico')
             if icon_path.exists():
-                self.setWindowIcon(QIcon(str(icon_path)))
+                icon = QIcon(str(icon_path))
+                self.setWindowIcon(icon)
+                # 同時設定應用程式圖示（確保工作列也顯示正確）
+                QApplication.instance().setWindowIcon(icon)
         except Exception as e:
             print(f"載入圖標失敗: {e}")
     
@@ -552,7 +555,7 @@ class PackageQueryApp(QMainWindow):
         title_label.setObjectName("titleLabel")
         title_layout.addWidget(title_label)
         
-        subtitle_label = QLabel("支援全家便利商店、宅急便、蝦皮店到店 | v1.4.0 PyQt6")
+        subtitle_label = QLabel("支援全家便利商店、宅急便、蝦皮店到店 | v1.5.0 PyQt6")
         subtitle_label.setObjectName("subtitleLabel")
         title_layout.addWidget(subtitle_label)
         

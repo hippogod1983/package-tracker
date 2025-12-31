@@ -7,6 +7,13 @@ __pycache__/
 *.egg-info/
 .eggs/
 
+# Virtual Environment
+.venv/
+venv/
+
+# UV lock file (optional, can be excluded for simpler setup)
+uv.lock
+
 # Debug files
 debug*.txt
 debug*.html
