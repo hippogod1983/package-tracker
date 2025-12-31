@@ -1,6 +1,6 @@
 # 通用包裹查詢程式
 
-> **版本: 1.3.0** (PyQt6 版本)
+> **版本: 1.4.0** (PyQt6 版本)
 
 自動查詢包裹物流狀態的跨平台視窗應用程式，支援多家物流平台。
 
@@ -23,10 +23,18 @@
 - ✅ **無頭瀏覽器** - 蝦皮使用 Playwright headless 抓取
 - ✅ **快捷操作** - Enter 查詢
 - ✅ **自動保存** - 記住上次查詢的包裹編號
+- ✅ **獨立執行檔** - 打包後包含 Chromium 和 ddddocr 模型，無需額外安裝
 
 ## 快速開始
 
-### Windows 安裝
+### 方式一：直接下載執行檔（推薦）
+
+1. 下載 `PackageTracker.exe`
+2. 雙擊執行即可使用
+
+> ⚠️ 執行檔約 382 MB，因內含 Chromium 瀏覽器和 OCR 模型
+
+### 方式二：從原始碼執行
 
 #### 1. 安裝 Python 3.11
 
@@ -76,14 +84,15 @@ uv run python gui_app.py
 
 ### 打包成 exe（Windows）
 
-```bash
-uv run pyinstaller --onefile --windowed --icon=icon.ico ^
-    --add-data "icon.ico;." --add-data "icon_hd.png;." ^
-    --collect-data ddddocr --hidden-import ddddocr ^
-    --name "通用包裹查詢" gui_app.py
+```powershell
+uv run pyinstaller --onefile --windowed --icon=icon.ico --name="PackageTracker" `
+    --add-data "$env:USERPROFILE\AppData\Local\ms-playwright\chromium-1200;ms-playwright/chromium-1200" `
+    --collect-all ddddocr gui_app.py
 ```
 
-> ⚠️ **重要**：必須使用 `--collect-data ddddocr` 否則驗證碼功能會失效
+> ⚠️ **重要**：
+> - 必須使用 `--collect-all ddddocr` 否則驗證碼功能會失效
+> - 必須加入 Chromium 瀏覽器否則蝦皮查詢會失敗
 
 ## 擴展新快遞
 

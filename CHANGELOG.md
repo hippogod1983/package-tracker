@@ -2,6 +2,30 @@
 
 所有重要變更都會記錄在此檔案。
 
+## [1.4.0] - 2025-12-31
+
+### 新增
+- 🎁 **獨立執行檔支援** - 打包後的 exe 包含 Chromium 瀏覽器和 ddddocr 模型
+- 📦 新增 `get_chromium_path()` 函數自動偵測內嵌 Chromium 路徑
+- 🔧 使用 UV 管理相依性
+
+### 變更
+- 更新 `requirements.txt` 同步 `pyproject.toml` 版本
+- 蝦皮查詢模組支援 PyInstaller 打包環境
+
+### 修復
+- 修正打包後 Playwright 找不到 Chromium 的問題
+- 修正 Chromium 目錄名稱（chrome-win64）
+
+---
+
+## [1.3.0] - 2025-12-30
+
+### 新增
+- 🦐 蝦皮店到店查詢功能（Playwright headless）
+
+---
+
 ## [1.2.1] - 2025-12-30
 
 ### 變更
