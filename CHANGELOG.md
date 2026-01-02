@@ -2,6 +2,35 @@
 
 所有重要變更都會記錄在此檔案。
 
+## [1.7.0] - 2026-01-02
+
+### 新增
+- ⚡ **並行查詢支援** - 使用 ThreadPoolExecutor 同時查詢多個包裹
+- 🔧 **SUPPORTS_PARALLEL 屬性** - 標記模組是否支援並行查詢
+
+### 變更
+- 全家、宅急便、7-11 模組支援並行查詢（最多 4 個同時）
+- 蝦皮、郵局模組保持序列查詢（Playwright 限制）
+- 進度條顯示「⚡ 並行查詢 X/Y」
+
+---
+
+## [1.6.0] - 2026-01-02
+
+### 新增
+- 🏪 **7-11 交貨便查詢** - 使用 ddddocr 自動辨識驗證碼
+- 📮 **郵局掛號查詢** - Playwright + ddddocr 辨識驗證碼
+- 📊 **即時進度條** - 顯示查詢進度百分比
+- 🔧 **錯誤處理強化** - 新增自訂例外類別（NetworkError、ParseError、NotFoundError、CaptchaError）
+- ⏱️ **指數退避重試** - `exponential_backoff()` 函數避免頻繁請求
+
+### 變更
+- 移除未使用依賴（openpyxl、pystray、pywebview）
+- 更新專案名稱為 `package-tracker`
+- 更新 `QueryWorker` 支援進度信號
+
+---
+
 ## [1.5.0] - 2025-12-31
 
 ### 變更

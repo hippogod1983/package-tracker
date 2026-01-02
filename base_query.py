@@ -9,6 +9,85 @@ from typing import List, Dict, Optional
 from dataclasses import dataclass, field
 from datetime import datetime
 import time
+import random
+
+
+# ============================================================
+# 自訂例外類別
+# ============================================================
+
+class QueryError(Exception):
+    """查詢錯誤基類"""
+    pass
+
+
+class NetworkError(QueryError):
+    """網路錯誤（連線失敗、超時等）"""
+    pass
+
+
+class ParseError(QueryError):
+    """解析錯誤（HTML 結構變更、資料格式異常）"""
+    pass
+
+
+class NotFoundError(QueryError):
+    """查無資料"""
+    pass
+
+
+class CaptchaError(QueryError):
+    """驗證碼錯誤"""
+    pass
+
+
+# ============================================================
+# 重試機制
+# ============================================================
+
+def exponential_backoff(attempt: int, base_delay: float = 1.0, max_delay: float = 30.0) -> float:
+    """
+    計算指數退避延遲時間
+    
+    Args:
+        attempt: 當前嘗試次數（從 0 開始）
+        base_delay: 基礎延遲秒數
+        max_delay: 最大延遲秒數
+        
+    Returns:
+        計算後的延遲秒數（含隨機抖動）
+    """
+    delay = min(base_delay * (2 ** attempt), max_delay)
+    jitter = delay * 0.1 * random.random()  # 加入 10% 隨機抖動
+    return delay + jitter
+
+
+def retry_with_backoff(func, max_retries: int = 3, 
+                       retryable_exceptions: tuple = (NetworkError, CaptchaError)):
+    """
+    使用指數退避的重試裝飾器
+    
+    Args:
+        func: 要執行的函數
+        max_retries: 最大重試次數
+        retryable_exceptions: 可重試的例外類型
+        
+    Returns:
+        函數執行結果
+    """
+    def wrapper(*args, **kwargs):
+        last_exception = None
+        for attempt in range(max_retries):
+            try:
+                return func(*args, **kwargs)
+            except retryable_exceptions as e:
+                last_exception = e
+                if attempt < max_retries - 1:
+                    delay = exponential_backoff(attempt)
+                    print(f"  重試 {attempt + 1}/{max_retries}，等待 {delay:.1f} 秒...")
+                    time.sleep(delay)
+        raise last_exception
+    return wrapper
 
 
 @dataclass
@@ -43,6 +122,7 @@ class BasePackageQuery(ABC):
     NAME: str = "未定義"      # 快遞名稱（顯示在頁籤）
     ICON: str = "📦"          # 快遞圖標
     MAX_BATCH: int = 5        # 單次最大查詢數量
+    SUPPORTS_PARALLEL: bool = True  # 是否支援並行查詢（Playwright 模組設為 False）
     
     def __init__(self, max_retries: int = 3):
         """

@@ -33,6 +33,8 @@ from base_query import CARRIERS
 import query_package
 import query_tcat
 import query_shopee
+import query_7eleven
+import query_post
 
 
 def get_resource_path(relative_path):
@@ -262,10 +264,11 @@ class ModernStyle:
 
 
 class QueryWorker(QThread):
-    """查詢工作執行緒"""
+    """查詢工作執行緒（支援並行/序列查詢）"""
     
     result_ready = pyqtSignal(dict)
     status_update = pyqtSignal(str)
+    progress_update = pyqtSignal(int, int)  # (當前, 總數)
     finished_signal = pyqtSignal()
     
     def __init__(self, query_class, tracking_numbers: List[str]):
@@ -273,30 +276,72 @@ class QueryWorker(QThread):
         self.query_class = query_class
         self.tracking_numbers = tracking_numbers
     
+    def _query_single(self, query, tracking_no: str) -> Dict:
+        """查詢單一包裹"""
+        try:
+            results = query._query_batch([tracking_no])
+            if results:
+                return results[0]
+            else:
+                return {
+                    '包裹編號': tracking_no,
+                    '訂單編號': '-',
+                    '狀態': '⚠️ 查無結果'
+                }
+        except Exception as e:
+            return {
+                '包裹編號': tracking_no,
+                '訂單編號': '-',
+                '狀態': f'❌ 查詢失敗: {str(e)}'
+            }
+    
     def run(self):
         try:
             query = self.query_class(max_retries=5)
+            total = len(self.tracking_numbers)
             
-            for i, tracking_no in enumerate(self.tracking_numbers, 1):
-                self.status_update.emit(f"查詢 {i}/{len(self.tracking_numbers)}: {tracking_no}")
+            # 檢查是否支援並行查詢
+            supports_parallel = getattr(self.query_class, 'SUPPORTS_PARALLEL', True)
+            
+            if supports_parallel and total > 1:
+                # 使用 ThreadPoolExecutor 並行查詢
+                self.status_update.emit(f"⚡ 並行查詢 {total} 個包裹...")
+                self.progress_update.emit(0, total)
                 
-                try:
-                    results = query._query_batch([tracking_no])
-                    if results:
-                        result = results[0]
-                        self.result_ready.emit(result)
-                    else:
-                        self.result_ready.emit({
-                            '包裹編號': tracking_no,
-                            '訂單編號': '-',
-                            '狀態': '⚠️ 查無結果'
-                        })
-                except Exception as e:
-                    self.result_ready.emit({
-                        '包裹編號': tracking_no,
-                        '訂單編號': '-',
-                        '狀態': f'❌ 查詢失敗: {str(e)}'
-                    })
+                from concurrent.futures import ThreadPoolExecutor, as_completed
+                
+                completed = 0
+                with ThreadPoolExecutor(max_workers=min(total, 4)) as executor:
+                    # 提交所有任務
+                    future_to_tracking = {
+                        executor.submit(self._query_single, query, tn): tn 
+                        for tn in self.tracking_numbers
+                    }
+                    
+                    # 處理完成的結果
+                    for future in as_completed(future_to_tracking):
+                        tracking_no = future_to_tracking[future]
+                        completed += 1
+                        self.progress_update.emit(completed, total)
+                        self.status_update.emit(f"⚡ 並行查詢 {completed}/{total}")
+                        
+                        try:
+                            result = future.result()
+                            self.result_ready.emit(result)
+                        except Exception as e:
+                            self.result_ready.emit({
+                                '包裹編號': tracking_no,
+                                '訂單編號': '-',
+                                '狀態': f'❌ 查詢失敗: {str(e)}'
+                            })
+            else:
+                # 序列查詢（Playwright 模組或只有一個包裹）
+                for i, tracking_no in enumerate(self.tracking_numbers, 1):
+                    self.status_update.emit(f"查詢 {i}/{total}: {tracking_no}")
+                    self.progress_update.emit(i, total)
+                    
+                    result = self._query_single(query, tracking_no)
+                    self.result_ready.emit(result)
             
             self.status_update.emit(f"查詢完成！({datetime.now().strftime('%H:%M:%S')})")
             
@@ -417,14 +462,17 @@ class QueryTab(QWidget):
         if hasattr(main_window, 'status_bar'):
             main_window.status_bar.showMessage(f"[{self.tab_name}] 開始查詢 {len(tracking_numbers)} 個包裹...")
         if hasattr(main_window, 'progress_bar'):
-            main_window.progress_bar.setMaximum(0)  # 不確定進度
+            main_window.progress_bar.setMaximum(len(tracking_numbers))
+            main_window.progress_bar.setValue(0)
         
         # 啟動工作執行緒
         self.worker = QueryWorker(self.query_class, tracking_numbers)
         self.worker.result_ready.connect(self._on_result)
         self.worker.status_update.connect(self._on_status_update)
+        self.worker.progress_update.connect(self._on_progress_update)  # 新增
         self.worker.finished_signal.connect(self._on_query_finished)
         self.worker.start()
+
     
     def _on_result(self, result: dict):
         """處理查詢結果"""
@@ -452,6 +500,13 @@ class QueryTab(QWidget):
         main_window = self.window()
         if hasattr(main_window, 'status_bar'):
             main_window.status_bar.showMessage(f"[{self.tab_name}] {status}")
+    
+    def _on_progress_update(self, current: int, total: int):
+        """更新進度條"""
+        main_window = self.window()
+        if hasattr(main_window, 'progress_bar'):
+            main_window.progress_bar.setMaximum(total)
+            main_window.progress_bar.setValue(current)
     
     def _on_query_finished(self):
         """查詢完成"""
@@ -510,7 +565,7 @@ class PackageQueryApp(QMainWindow):
     
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("通用包裹查詢 v1.5.0")
+        self.setWindowTitle("通用包裹查詢 v1.7.0")
         self.setMinimumSize(800, 650)
         self.resize(900, 700)
         
@@ -555,7 +610,7 @@ class PackageQueryApp(QMainWindow):
         title_label.setObjectName("titleLabel")
         title_layout.addWidget(title_label)
         
-        subtitle_label = QLabel("支援全家便利商店、宅急便、蝦皮店到店 | v1.5.0 PyQt6")
+        subtitle_label = QLabel("支援全家、宅急便、7-11、郵局、蝦皮 | v1.7.0 並行查詢")
         subtitle_label.setObjectName("subtitleLabel")
         title_layout.addWidget(subtitle_label)
         

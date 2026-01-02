@@ -41,6 +41,7 @@ class ShopeePackageQuery(BasePackageQuery):
     NAME = "蝦皮店到店"
     ICON = ""
     MAX_BATCH = 5  # 可批量查詢
+    SUPPORTS_PARALLEL = False  # Playwright 不支援並行
     
     # 蝦皮店到店追蹤網址
     DETAIL_URL = "https://spx.tw/detail/"
